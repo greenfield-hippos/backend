@@ -1,0 +1,25 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./src/server.js",
+    "express-dev": "nodemon ./src/server.js",
+    "migrate-latest": "npx knex migrate:latest --knexfile ./knexfile.js",
+    "migrate-down": "npx knex migrate:down --knexfile ./knexfile.js",
+    "seed-data": "npx knex seed:run --knexfile ./knexfile.js",
+    "build": "npm install; npm run migrate-latest; npm run seed",
+    "seed": "knex seed:run"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "knex": "^2.5.1",
+    "pg": "^8.11.3"
+  }
+}
