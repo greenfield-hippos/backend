@@ -33,7 +33,7 @@ app.post('/api/chat', async (req, res) => {
 
 const CHAT_USER_TABLE = "chat_user";
 
-app.post('/user', async (req, res) => {
+app.post('/signup', async (req, res) => {
   const {username, password} = req.body;
   const saltedHash = await hashPassword(password);
 
