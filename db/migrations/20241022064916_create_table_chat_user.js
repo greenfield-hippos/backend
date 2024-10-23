@@ -3,14 +3,14 @@
  * @returns { Promise<void> }
  */
 exports.up = async function(knex) {
-  await knex.schema.createTable('user', (table) => {
+  await knex.schema.createTable('chat_user', (table) => {
     table.increments('id').primary();
     table.string('username').notNullable().unique();
     table.string('hash').notNullable();
     table.string('salt').notNullable();
     table.boolean('isAdmin').notNullable();
     table.timestamp('account_created').defaultTo(knex.fn.now());
-    table.timestamp('last_login').defaultTo(knex.fn.now());
+    table.timestamp('last_login');
   })
 };
 
@@ -19,5 +19,5 @@ exports.up = async function(knex) {
  * @returns { Promise<void> }
  */
 exports.down = async function(knex) {
-  await knex.schema.dropTable('user');
+  await knex.schema.dropTable('chat_user');
 };
