@@ -7,7 +7,7 @@ exports.up = async function(knex) {
     table.increments('id').primary();
     table.string('username').notNullable().unique();
     table.string('salted_hash').notNullable();
-    table.boolean('isAdmin').notNullable();
+    table.boolean('is_admin').notNullable();
     table.timestamp('account_created').defaultTo(knex.fn.now());
     table.timestamp('last_login');
   })
