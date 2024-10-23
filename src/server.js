@@ -31,7 +31,25 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+const CHAT_USER_TABLE = "chat_user";
 
+app.post('/user', async (req, res) => {
+  const {username, password} = req.body;
+  const saltedHash = await hashPassword(password);
+
+  let newChatUser = {
+    username: username,
+    salted_hash: saltedHash,
+    is_admin: false
+  };
+
+  const userCreated = await knex
+    .returning("*")
+    .insert(newChatUser)
+    .into(CHAT_USER_TABLE);
+
+  res.status(201).json(userCreated);
+});
 
 //for new user creation
 async function hashPassword(plainTextPassword) {
