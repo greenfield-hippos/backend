@@ -51,6 +51,19 @@ app.post('/user', async (req, res) => {
   res.status(201).json(userCreated);
 });
 
+app.post('/login', async (req, res) => {
+  const {username, password} = req.body;
+  const saltedHashObject = await knex
+  .select("salted_hash")
+  .from(CHAT_USER_TABLE)
+  .where({username: username})
+  .first();
+
+  const saltedHash = saltedHashObject.salted_hash;
+  const authenicationResult = await verifyPassword(password, saltedHash);
+  res.status(200).json({authenticationSuccessful: authenicationResult});
+});
+
 //for new user creation
 async function hashPassword(plainTextPassword) {
   const saltRounds = 10; //the higher the more secure but more time-consuming
