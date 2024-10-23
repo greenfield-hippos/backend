@@ -51,6 +51,24 @@ app.post('/signup', async (req, res) => {
   res.status(201).json(userCreated);
 });
 
+app.post('/login', async (req, res) => {
+  const {username, password} = req.body;
+
+  const user = await knex
+  .select("*")
+  .from(CHAT_USER_TABLE)
+  .where({username: username})
+  .first();
+
+  if (user) {
+    const saltedHash = user.salted_hash;
+    const authenicationResult = await verifyPassword(password, saltedHash);
+    res.status(200).json({authenticationSuccessful: authenicationResult});
+  } else {
+    res.status(404).send("User Not Found");
+  }
+});
+
 //for new user creation
 async function hashPassword(plainTextPassword) {
   const saltRounds = 10; //the higher the more secure but more time-consuming
