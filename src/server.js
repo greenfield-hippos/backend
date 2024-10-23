@@ -53,15 +53,20 @@ app.post('/user', async (req, res) => {
 
 app.post('/login', async (req, res) => {
   const {username, password} = req.body;
-  const saltedHashObject = await knex
-  .select("salted_hash")
+
+  const user = await knex
+  .select("*")
   .from(CHAT_USER_TABLE)
   .where({username: username})
   .first();
 
-  const saltedHash = saltedHashObject.salted_hash;
-  const authenicationResult = await verifyPassword(password, saltedHash);
-  res.status(200).json({authenticationSuccessful: authenicationResult});
+  if (user) {
+    const saltedHash = user.salted_hash;
+    const authenicationResult = await verifyPassword(password, saltedHash);
+    res.status(200).json({authenticationSuccessful: authenicationResult});
+  } else {
+    res.status(404).send("User Not Found");
+  }
 });
 
 //for new user creation
