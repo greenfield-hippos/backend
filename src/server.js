@@ -2,6 +2,7 @@ const knex = require('./knex');
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 const openaiRequest = require('./openairequest');
 
 
@@ -31,6 +32,27 @@ app.post('/api/chat', async (req, res) => {
 });
 
 
+
+//for new user creation
+async function hashPassword(plainTextPassword) {
+  const saltRounds = 10; //the higher the more secure but more time-consuming
+  try {
+      const hash = await bcrypt.hash(plainTextPassword, saltRounds); //applies salt and hashes the password
+      return hash;
+  } catch (err) {
+      console.error('Hashing error:', err);
+  }
+}
+
+//for existing user login
+async function verifyPassword(plainTextPassword, hashedPasswordFromDB) {
+  try {
+      const match = await bcrypt.compare(plainTextPassword, hashedPasswordFromDB); //the salt can be implicitly extracted from the hashed password
+      return match;
+  } catch (err) {
+      console.error('Verification error:', err);
+  }
+}
 
 app.listen(PORT, () =>{
   console.log(`Express server is up and running on ${PORT}`);

@@ -12,7 +12,7 @@ module.exports = {
   connection: DB_URL || {
     host: DB_HOST || "127.0.0.1",
     port: DB_PORT || "5432",
-    database: DB_NAME,
+    database: DB_NAME || "greenfield",
     user: DB_USER || "postgres",
     password: DB_PASSWORD || "codechrysalis",
   },
