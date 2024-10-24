@@ -35,20 +35,26 @@ const CHAT_USER_TABLE = "chat_user";
 
 app.post('/signup', async (req, res) => {
   const {username, password} = req.body;
-  const saltedHash = await hashPassword(password);
+  const userFound = await getChatUserByUsername(username);
 
-  let newChatUser = {
-    username: username,
-    salted_hash: saltedHash,
-    is_admin: false
-  };
+  if (!userFound) {
+    const saltedHash = await hashPassword(password);
 
-  const userCreated = await knex
-    .returning("*")
-    .insert(newChatUser)
-    .into(CHAT_USER_TABLE);
-
-  res.status(201).json(userCreated);
+    let newChatUser = {
+      username: username,
+      salted_hash: saltedHash,
+      is_admin: false
+    };
+  
+    const userCreated = await knex
+      .returning("*")
+      .insert(newChatUser)
+      .into(CHAT_USER_TABLE);
+  
+    res.status(201).json(userCreated);
+  } else {
+    res.status(400).send("User Already Exists");
+  }
 });
 
 app.post('/login', async (req, res) => {
