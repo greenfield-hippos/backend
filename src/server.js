@@ -51,7 +51,7 @@ app.post('/signup', async (req, res) => {
       .insert(newChatUser)
       .into(CHAT_USER_TABLE);
   
-    res.status(201).json(userCreated);
+    res.status(201).json(userCreated[0]);
   } else {
     res.status(400).send("User Already Exists");
   }
