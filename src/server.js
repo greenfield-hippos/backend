@@ -63,7 +63,14 @@ app.post('/login', async (req, res) => {
   if (user) {
     const saltedHash = user.salted_hash;
     const authenicationResult = await verifyPassword(password, saltedHash);
-    res.status(200).json({authenticationSuccessful: authenicationResult});
+
+    const updateResult = await updateLastLogin(user.id, new Date());
+
+    if (updateResult) {
+      res.status(200).json({authenticationSuccessful: authenicationResult});
+    } else {
+      res.status(500).send("Could Not Log In");
+    }
   } else {
     res.status(404).send("User Not Found");
   }
@@ -88,6 +95,13 @@ async function verifyPassword(plainTextPassword, hashedPasswordFromDB) {
   } catch (err) {
       console.error('Verification error:', err);
   }
+}
+
+function updateLastLogin(id, lastLogin) {
+  return knex(CHAT_USER_TABLE)
+    .returning("*")
+    .where({ id: id })
+    .update({last_login: lastLogin})
 }
 
 app.listen(PORT, () =>{
