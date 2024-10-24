@@ -35,35 +35,44 @@ const CHAT_USER_TABLE = "chat_user";
 
 app.post('/signup', async (req, res) => {
   const {username, password} = req.body;
-  const saltedHash = await hashPassword(password);
+  const userFound = await getChatUserByUsername(username);
 
-  let newChatUser = {
-    username: username,
-    salted_hash: saltedHash,
-    is_admin: false
-  };
+  if (!userFound) {
+    const saltedHash = await hashPassword(password);
 
-  const userCreated = await knex
-    .returning("*")
-    .insert(newChatUser)
-    .into(CHAT_USER_TABLE);
-
-  res.status(201).json(userCreated);
+    let newChatUser = {
+      username: username,
+      salted_hash: saltedHash,
+      is_admin: false
+    };
+  
+    const userCreated = await knex
+      .returning("*")
+      .insert(newChatUser)
+      .into(CHAT_USER_TABLE);
+  
+    res.status(201).json(userCreated[0]);
+  } else {
+    res.status(400).send("User Already Exists");
+  }
 });
 
 app.post('/login', async (req, res) => {
   const {username, password} = req.body;
 
-  const user = await knex
-  .select("*")
-  .from(CHAT_USER_TABLE)
-  .where({username: username})
-  .first();
+  const user = await getChatUserByUsername(username);
 
   if (user) {
     const saltedHash = user.salted_hash;
     const authenicationResult = await verifyPassword(password, saltedHash);
-    res.status(200).json({authenticationSuccessful: authenicationResult});
+
+    const updateResult = await updateLastLogin(user.id, new Date());
+
+    if (updateResult) {
+      res.status(200).json({authenticationSuccessful: authenicationResult});
+    } else {
+      res.status(500).send("Could Not Log In");
+    }
   } else {
     res.status(404).send("User Not Found");
   }
@@ -88,6 +97,21 @@ async function verifyPassword(plainTextPassword, hashedPasswordFromDB) {
   } catch (err) {
       console.error('Verification error:', err);
   }
+}
+
+function updateLastLogin(id, lastLogin) {
+  return knex(CHAT_USER_TABLE)
+    .returning("*")
+    .where({ id: id })
+    .update({last_login: lastLogin})
+}
+
+function getChatUserByUsername(username) {
+  return knex
+  .select("*")
+  .from(CHAT_USER_TABLE)
+  .where({username: username})
+  .first();
 }
 
 app.listen(PORT, () =>{
