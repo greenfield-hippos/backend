@@ -54,11 +54,7 @@ app.post('/signup', async (req, res) => {
 app.post('/login', async (req, res) => {
   const {username, password} = req.body;
 
-  const user = await knex
-  .select("*")
-  .from(CHAT_USER_TABLE)
-  .where({username: username})
-  .first();
+  const user = await getChatUserByUsername(username);
 
   if (user) {
     const saltedHash = user.salted_hash;
@@ -102,6 +98,14 @@ function updateLastLogin(id, lastLogin) {
     .returning("*")
     .where({ id: id })
     .update({last_login: lastLogin})
+}
+
+function getChatUserByUsername(username) {
+  return knex
+  .select("*")
+  .from(CHAT_USER_TABLE)
+  .where({username: username})
+  .first();
 }
 
 app.listen(PORT, () =>{
