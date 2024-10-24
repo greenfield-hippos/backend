@@ -27,15 +27,68 @@ app.get('/', (req, res) => {
 });
 
 app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
-  const { message } = req.body;
+  const { message, user_id, conversation_id } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: "Message is required." });
   }
 
+  if (!user_id) {
+    return res.status(400).json({ error: "User ID is required." });
+  }
+
   try {
     const openaiResponse = await openaiRequest(message);
-    res.json({ response: openaiResponse });
+
+    let associatedConversationID;
+    //if no conversation ID present, add a new conversation and use its ID - otherwise use the ID given
+    if (!conversation_id) {
+      const openaiSummary = await openaiRequest("Summarize the topic my question is about in 4 words or less.");
+      //is there a way to achieve this without requesting a second time?
+      const newConversation = {
+        title: openaiSummary,
+        updated_at: new Date()
+      };
+
+      const newlyCreated = await addConversation(newConversation);
+      associatedConversationID = newlyCreated[0].id;
+    } else {
+      associatedConversationID = conversation_id;
+    }
+
+    const chatUser = await getChatUserByID(user_id);
+    const chatUsername = chatUser.username;
+
+    if (associatedConversationID && chatUsername) { //to make sure we have both before proceeding
+      //Preparing the message record for the question the user asked
+      const userQuestion = {
+        chat_user_id: user_id,
+        conversation_id: associatedConversationID,
+        author: chatUsername,
+        content: message
+      };
+
+      //Preparing the message record for the answer received from ChatGPT
+      const gptAnswer = {
+        chat_user_id: user_id,
+        conversation_id: associatedConversationID,
+        author: "ChatGPT", //Is this text ok?
+        content: openaiResponse
+      };
+
+      const addedQuestionArray = await addMessage(userQuestion);
+      const addedAnswerArray = await addMessage(gptAnswer);
+      const addedQuestion = addedQuestionArray[0];
+      const addedAnswer = addedAnswerArray[0];
+
+      if (addedQuestion && addedAnswer) { //to make sure we have added both before proceeding
+        res.json({ response: openaiResponse }); //should any of the newly created rows be returned to the front end?
+      } else {
+        res.status(500).json({ error: "Failed to add the conversation content to the database."});
+      }
+    } else {
+      res.status(500).json({ error: "Failed to retrieve the information required from the database."});
+    }
   } catch (error) {
     console.error("Error in the the /api/chat route: ", error.message);
     res.status(500).json({ error: "Failed to generate a response from OpenAI."});
@@ -43,6 +96,8 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
 });
 
 const CHAT_USER_TABLE = "chat_user";
+const MESSAGE_TABLE = "message";
+const CONVERSATION_TABLE = "conversation";
 
 app.post('/signup',checkNotYetAuthenticated, async (req, res) => {
   const {username, password} = req.body;
@@ -57,10 +112,7 @@ app.post('/signup',checkNotYetAuthenticated, async (req, res) => {
       is_admin: false
     };
   
-    const userCreated = await knex
-      .returning("*")
-      .insert(newChatUser)
-      .into(CHAT_USER_TABLE);
+    const userCreated = await addUser(newChatUser);
   
     res.status(201).json(userCreated[0]);
   } else {
@@ -149,6 +201,38 @@ function getChatUserByUsername(username) {
   .from(CHAT_USER_TABLE)
   .where({username: username})
   .first();
+}
+
+function getChatUserByID(id) {
+  return knex
+  .select("*")
+  .from(CHAT_USER_TABLE)
+  .where({id: id})
+  .first();
+}
+
+//returns an array of objects, even if just one row being added
+function addUser(newUserObject) {
+  return knex
+  .returning("*")
+  .insert(newUserObject)
+  .into(CHAT_USER_TABLE);
+}
+
+//returns an array of objects, even if just one row being added
+function addConversation(newConversationObject) {
+  return knex
+  .returning("*")
+  .insert(newConversationObject)
+  .into(CONVERSATION_TABLE);
+}
+
+//returns an array of objects, even if just one row being added
+function addMessage(newMessageObject) {
+  return knex
+  .returning("*")
+  .insert(newMessageObject)
+  .into(MESSAGE_TABLE);
 }
 
 app.listen(PORT, () =>{
