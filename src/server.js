@@ -16,8 +16,8 @@ app.use(cors());
 app.use(session({
   secret: sessionSecret, 
   resave: false,
-  saveUninitialized: false, // Sample used true, but seems unnecessary for our use case
-  cookie: { secure: false } // Set to true if using HTTPS
+  saveUninitialized: false,
+  cookie: { path: '/', httpOnly: true, secure: false, maxAge: null } // Currently using all of the default values explicitly
 }));
 
 app.use(express.urlencoded({ extended: true }));
@@ -75,14 +75,19 @@ app.post('/login', async (req, res) => {
 
   if (user) {
     const saltedHash = user.salted_hash;
-    const authenicationResult = await verifyPassword(password, saltedHash);
+    const authenicationResult = await verifyPassword(password, saltedHash); //Checks that password is OK
 
-    const updateResult = await updateLastLogin(user.id, new Date());
+    if (authenicationResult) {
+      req.session.username = user.username; //Gives the user a session because password was OK
+      const lastLoginUpdateResult = await updateLastLogin(user.id, new Date()); //Updates last_login in the db
 
-    if (updateResult) {
-      res.status(200).json({authenticationSuccessful: authenicationResult});
+      if (lastLoginUpdateResult) {
+        res.status(200).json({authenticationSuccessful: authenicationResult});
+      } else {
+        res.status(500).send("Could Not Log In");
+      }
     } else {
-      res.status(500).send("Could Not Log In");
+      res.status(401).json({authenticationSuccessful: authenicationResult});
     }
   } else {
     res.status(404).send("User Not Found");
