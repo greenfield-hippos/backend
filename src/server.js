@@ -79,10 +79,13 @@ app.post('/login',checkNotYetAuthenticated, async (req, res) => {
 
     if (authenicationResult) {
       req.session.username = user.username; //Gives the user a session because password was OK
-      const lastLoginUpdateResult = await updateLastLogin(user.id, new Date()); //Updates last_login in the db
+      const lastLoginUpdateResult = await updateLastLogin(user.id, new Date()); //Updates last_login in the db and returns the updated user
 
       if (lastLoginUpdateResult) {
-        res.status(200).json({authenticationSuccessful: authenicationResult});
+        res.status(200).json({
+          authenticationSuccessful: authenicationResult,
+          chatUser: lastLoginUpdateResult
+        });
       } else {
         res.status(500).send("Could Not Log In");
       }
