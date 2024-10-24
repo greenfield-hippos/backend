@@ -120,7 +120,7 @@ async function verifyPassword(plainTextPassword, hashedPasswordFromDB) {
 
 // middleware to test if authenticated
 function checkIsAuthenticated (req, res, next) {
-  if (req.session.user) {
+  if (req.session.username) {
     next();
   } else {
     res.status(400).send("User Not Logged In");
@@ -129,7 +129,7 @@ function checkIsAuthenticated (req, res, next) {
 
 // middleware to test if NOT authenticated
 function checkNotYetAuthenticated (req, res, next) {
-  if (! req.session.user) {
+  if (! req.session.username) {
     next();
   } else {
     res.status(400).send("User Already Logged In");
