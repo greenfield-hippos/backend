@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
   res.send('Hello World!')
 });
 
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
   const { message } = req.body;
 
   if (!message) {
@@ -44,7 +44,7 @@ app.post('/api/chat', async (req, res) => {
 
 const CHAT_USER_TABLE = "chat_user";
 
-app.post('/signup', async (req, res) => {
+app.post('/signup',checkNotYetAuthenticated, async (req, res) => {
   const {username, password} = req.body;
   const userFound = await getChatUserByUsername(username);
 
@@ -68,7 +68,7 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login',checkNotYetAuthenticated, async (req, res) => {
   const {username, password} = req.body;
 
   const user = await getChatUserByUsername(username);
@@ -112,6 +112,24 @@ async function verifyPassword(plainTextPassword, hashedPasswordFromDB) {
       return match;
   } catch (err) {
       console.error('Verification error:', err);
+  }
+}
+
+// middleware to test if authenticated
+function checkIsAuthenticated (req, res, next) {
+  if (req.session.user) {
+    next();
+  } else {
+    res.status(400).send("User Not Logged In");
+  }
+}
+
+// middleware to test if NOT authenticated
+function checkNotYetAuthenticated (req, res, next) {
+  if (! req.session.user) {
+    next();
+  } else {
+    res.status(400).send("User Already Logged In");
   }
 }
 
