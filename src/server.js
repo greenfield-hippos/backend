@@ -4,6 +4,7 @@ const app = express();
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const openaiRequest = require('./openairequest');
+const generateConversationTitle = require('./titleGenerator');
 const session = require('express-session')
 const crypto = require('crypto');
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
@@ -45,10 +46,9 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
     //if no conversation ID present, add a new conversation and use its ID - otherwise use the ID given
     if (!conversation_id) {
       continuedConversation = false;
-      const openaiSummary = await openaiRequest("Summarize the specific topic of the question that was asked in 5 words or less.");
-      //is there a way to achieve this without requesting a second time?
+      const openaiTitle= await generateConversationTitle(message, openaiResponse);
       const newConversation = {
-        title: openaiSummary,
+        title: openaiTitle,
         updated_at: new Date()
       };
 
@@ -75,7 +75,7 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
       const gptAnswer = {
         chat_user_id: user_id,
         conversation_id: associatedConversationID,
-        author: "ChatGPT", //Is this text ok?
+        author: "ChatGPT",
         content: openaiResponse
       };
 
@@ -218,7 +218,7 @@ function checkIsAuthenticated (req, res, next) {
   if (req.session.username) {
     next();
   } else {
-    res.status(400).send("User Not Logged In");
+    res.status(401).send("User Not Logged In");
   }
 }
 
