@@ -41,9 +41,11 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
     const openaiResponse = await openaiRequest(message);
 
     let associatedConversationID;
+    let continuedConversation;
     //if no conversation ID present, add a new conversation and use its ID - otherwise use the ID given
     if (!conversation_id) {
-      const openaiSummary = await openaiRequest("Summarize the topic my question is about in 4 words or less.");
+      continuedConversation = false;
+      const openaiSummary = await openaiRequest("Summarize the specific topic of the question that was asked in 5 words or less.");
       //is there a way to achieve this without requesting a second time?
       const newConversation = {
         title: openaiSummary,
@@ -53,6 +55,7 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
       const newlyCreated = await addConversation(newConversation);
       associatedConversationID = newlyCreated[0].id;
     } else {
+      continuedConversation = true;
       associatedConversationID = conversation_id;
     }
 
@@ -81,8 +84,15 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
       const addedQuestion = addedQuestionArray[0];
       const addedAnswer = addedAnswerArray[0];
 
-      if (addedQuestion && addedAnswer) { //to make sure we have added both before proceeding
-        res.json({ response: openaiResponse }); //should any of the newly created rows be returned to the front end?
+      if (continuedConversation) {
+        await updateConvoLastUpdated(associatedConversationID , new Date());
+      }
+
+      if (addedQuestion && addedAnswer) { //to make sure we have made all necessary changes before proceeding
+        res.json({
+          response: openaiResponse,
+          conversation_id: associatedConversationID
+        }); //should any of the newly created rows be returned to the front end?
       } else {
         res.status(500).json({ error: "Failed to add the conversation content to the database."});
       }
@@ -225,6 +235,13 @@ function addConversation(newConversationObject) {
   .returning("*")
   .insert(newConversationObject)
   .into(CONVERSATION_TABLE);
+}
+
+function updateConvoLastUpdated(id, lastUpdated) {
+  return knex(CONVERSATION_TABLE)
+  .returning("*")
+  .where({ id: id })
+  .update({updated_at: lastUpdated})
 }
 
 //returns an array of objects, even if just one row being added
