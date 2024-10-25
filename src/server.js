@@ -159,7 +159,7 @@ app.post('/login',checkNotYetAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/users/:uid/messages', async (req,res) => {
+app.get('/users/:uid/messages', checkIsAuthenticated, async (req,res) => {
   const userID = parseInt(req.params.uid);
 
   try {  
@@ -170,7 +170,7 @@ app.get('/users/:uid/messages', async (req,res) => {
   }
 });
 
-app.get('/users/:uid/conversations/:cid/messages', async (req,res) => {
+app.get('/users/:uid/conversations/:cid/messages', checkIsAuthenticated, async (req,res) => {
   const conversationID = parseInt(req.params.cid);
 
   try {  
@@ -181,7 +181,7 @@ app.get('/users/:uid/conversations/:cid/messages', async (req,res) => {
   }
 });
 
-app.get('/users/:uid/conversations', async (req,res) => {
+app.get('/users/:uid/conversations', checkIsAuthenticated, async (req,res) => {
   const userID = parseInt(req.params.uid);
 
   try {  
