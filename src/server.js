@@ -277,11 +277,15 @@ function updateConvoLastUpdated(id, lastUpdated) {
   .update({updated_at: lastUpdated})
 }
 
-function getAllConversationsForUser(userID) {
+async function getAllConversationsForUser(userID) {
+  const allMessagesForUser = await getAllMessagesForUser(userID);
+  const allConversationIDs = allMessagesForUser.map((message) => message.conversation_id);
+  const uniqueConversationIDs = [... new Set(allConversationIDs)];
+
   return knex
   .select()
   .from(CONVERSATION_TABLE)
-  .where({chat_user_id: userID})
+  .whereIn('id', uniqueConversationIDs)
   .orderBy('updated_at', 'desc')
 }
 
