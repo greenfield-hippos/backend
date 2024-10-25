@@ -23,6 +23,7 @@
     "express": "^4.18.2",
     "express-session": "^1.18.1",
     "knex": "^2.5.1",
+    "memorystore": "^1.6.7",
     "pg": "^8.11.3"
   }
 }

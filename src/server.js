@@ -5,7 +5,8 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const openaiRequest = require('./openairequest');
 const generateConversationTitle = require('./titleGenerator');
-const session = require('express-session')
+const session = require('express-session');
+const MemoryStore = require('memorystore')(session);
 const crypto = require('crypto');
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
 
@@ -18,6 +19,9 @@ app.use(session({
   secret: sessionSecret, 
   resave: false,
   saveUninitialized: false,
+  store: new MemoryStore({
+    checkPeriod: 86400000
+  }),
   cookie: { path: '/', httpOnly: true, secure: false, maxAge: null } // Currently using all of the default values explicitly
 }));
 
