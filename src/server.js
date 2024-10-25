@@ -127,7 +127,8 @@ app.post('/signup',checkNotYetAuthenticated, async (req, res) => {
     };
   
     const userCreated = await addUser(newChatUser);
-  
+    delete userCreated[0].salted_hash;
+
     res.status(201).json(userCreated[0]);
   } else {
     res.status(400).send("User Already Exists");
@@ -146,11 +147,12 @@ app.post('/login',checkNotYetAuthenticated, async (req, res) => {
     if (authenicationResult) {
       req.session.username = user.username; //Gives the user a session because password was OK
       const lastLoginUpdateResult = await updateLastLogin(user.id, new Date()); //Updates last_login in the db and returns the updated user
+      delete lastLoginUpdateResult[0].salted_hash;
 
-      if (lastLoginUpdateResult) {
+      if (lastLoginUpdateResult[0]) {
         res.status(200).json({
           authenticationSuccessful: authenicationResult,
-          chatUser: lastLoginUpdateResult
+          chatUser: lastLoginUpdateResult[0]
         });
       } else {
         res.status(500).send("Could Not Log In");
