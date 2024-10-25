@@ -32,8 +32,6 @@ async function generateConversationTitle(firstUserMessage, firstAssistantReply) 
     }
 
     const data = await response.json();
-    console.log(data.choices[0].message)
-    console.log(data.choices[0].message.content)
     const title = data.choices[0].message.content.trim().replace(/^["']|["']$/g, ''); // Remove any surrounding quotes
     return title;
   } catch (error) {
