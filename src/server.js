@@ -159,6 +159,39 @@ app.post('/login',checkNotYetAuthenticated, async (req, res) => {
   }
 });
 
+app.get('/users/:uid/messages', async (req,res) => {
+  const userID = parseInt(req.params.uid);
+
+  try {  
+    const allMessagesForUser = await getAllMessagesForUser(userID);
+    res.status(200).json(allMessagesForUser);
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
+app.get('/users/:uid/conversations/:cid/messages', async (req,res) => {
+  const conversationID = parseInt(req.params.cid);
+
+  try {  
+    const allMessagesFromConversation = await getAllMessagesFromConversation(conversationID);
+    res.status(200).json(allMessagesFromConversation);
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
+app.get('/users/:uid/conversations', async (req,res) => {
+  const userID = parseInt(req.params.uid);
+
+  try {  
+    const allConversationsForUser = await getAllConversationsForUser(userID);
+    res.status(200).json(allConversationsForUser);
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
 //for new user creation
 async function hashPassword(plainTextPassword) {
   const saltRounds = 10; //the higher the more secure but more time-consuming
@@ -242,6 +275,30 @@ function updateConvoLastUpdated(id, lastUpdated) {
   .returning("*")
   .where({ id: id })
   .update({updated_at: lastUpdated})
+}
+
+function getAllConversationsForUser(userID) {
+  return knex
+  .select()
+  .from(CONVERSATION_TABLE)
+  .where({chat_user_id: userID})
+  .orderBy('updated_at', 'desc')
+}
+
+function getAllMessagesForUser(userID) {
+  return knex
+  .select()
+  .from(MESSAGE_TABLE)
+  .where({chat_user_id: userID})
+  .orderBy('timestamp', 'asc')
+}
+
+function getAllMessagesFromConversation(conversationID) {
+  return knex
+  .select()
+  .from(MESSAGE_TABLE)
+  .where({conversation_id: conversationID})
+  .orderBy('timestamp', 'asc')
 }
 
 //returns an array of objects, even if just one row being added
