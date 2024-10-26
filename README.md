@@ -46,6 +46,20 @@ To help software engineering students improve their skills and knowledge
 
 4. In psql, verify your new user exists locally by running the command `SELECT * FROM chat_user;`. You should see your new user as a row in the table that is output.
 
-5. In terminal, run `npm run seed` to run the seeds that will populate the other database tables with dummy data.
+5. In terminal, run `npm run seed` to run the seeds that will populate the other database tables, `message` and `conversation` with dummy data.
 
 Now you should have what you need to get started!
+
+## Endpoints
+
+- POST `/signup`: Used to create a new user account. Expects `username` and `password` in the JSON request body. Responds with the user object that was created
+
+- POST `/login`: Used to log in with an existing user account. Expects `username` and `password` in the JSON request body. Responds with the user object that was created and a boolean, `authenticationSuccessful`, that indicates the result of the attempted login
+
+- POST `/api/chat`: Used to interface with ChatGPT. Expects `user_id` and `message` in the JSON request body. Including an optional `conversation_id` will allow the message to be associated with an existing conversation instead of creating a new one. Responds with the `response` from ChatGPT and the `conversation_id` associated with the current conversation
+
+- GET `/users/:uid/messages`: Used to retrieve all messages associated with a given user ID. Responds with an array of `message` objects
+
+- GET `/users/:uid/conversations/:cid/messages`: Used to retrieve all messages associated with a given conversation ID for a given user. Responds with an array of `message` objects
+- 
+- GET `/users/:uid/conversations`: Used to retrieve all conversations associated with a given user ID. Responds with an array of `conversation` objects
