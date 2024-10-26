@@ -9,11 +9,16 @@ const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
 const crypto = require('crypto');
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
+const frontendURL = process.env.FRONT_END_URL || "http://localhost:5173"
 
 const PORT = process.env.PORT || 8080;
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: frontendURL,
+  credentials: true // Allow credentials (cookies) to be sent
+}));
+app.options('*', cors());
 
 app.use(session({
   secret: sessionSecret, 
@@ -137,7 +142,6 @@ app.post('/signup',checkNotYetAuthenticated, async (req, res) => {
 
 app.post('/login',checkNotYetAuthenticated, async (req, res) => {
   const {username, password} = req.body;
-
   const user = await getChatUserByUsername(username);
 
   if (user) {
