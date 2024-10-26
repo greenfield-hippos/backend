@@ -61,5 +61,5 @@ Now you should have what you need to get started!
 - GET `/users/:uid/messages`: Used to retrieve all messages associated with a given user ID. Responds with an array of `message` objects
 
 - GET `/users/:uid/conversations/:cid/messages`: Used to retrieve all messages associated with a given conversation ID for a given user. Responds with an array of `message` objects
-- 
+
 - GET `/users/:uid/conversations`: Used to retrieve all conversations associated with a given user ID. Responds with an array of `conversation` objects
