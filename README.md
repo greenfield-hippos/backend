@@ -1,5 +1,7 @@
 # Greenfield Project Backend Repository
 
+https://greenfield-hippos-backend.onrender.com/
+
 ## Purpose
 
 To help software engineering students improve their skills and knowledge
@@ -39,7 +41,7 @@ To help software engineering students improve their skills and knowledge
 ```
 {
   "username": "putYourUserNameHere",
-  "password": "putYouPasswordHere
+  "password": "putYouPasswordHere"
 }
 
 ```
