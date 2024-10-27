@@ -41,7 +41,7 @@ To help software engineering students improve their skills and knowledge
 ```
 {
   "username": "putYourUserNameHere",
-  "password": "putYouPasswordHere"
+  "password": "putYourPasswordHere"
 }
 
 ```
