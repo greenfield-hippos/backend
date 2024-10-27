@@ -9,11 +9,16 @@ const session = require('express-session');
 const MemoryStore = require('memorystore')(session);
 const crypto = require('crypto');
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
+const frontendURL = process.env.FRONT_END_URL || "http://localhost:5173"
 
 const PORT = process.env.PORT || 8080;
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: frontendURL,
+  credentials: true // Allow credentials (cookies) to be sent
+}));
+app.options('*', cors());
 
 app.use(session({
   secret: sessionSecret, 
@@ -137,7 +142,6 @@ app.post('/signup',checkNotYetAuthenticated, async (req, res) => {
 
 app.post('/login',checkNotYetAuthenticated, async (req, res) => {
   const {username, password} = req.body;
-
   const user = await getChatUserByUsername(username);
 
   if (user) {
@@ -163,6 +167,16 @@ app.post('/login',checkNotYetAuthenticated, async (req, res) => {
   } else {
     res.status(404).send("User Not Found");
   }
+});
+
+app.post('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).send("Could Not Log Out");
+    }
+    res.clearCookie('connect.sid');
+    res.send("Log Out Successful");
+  });
 });
 
 app.get('/users/:uid/messages', checkIsAuthenticated, async (req,res) => {
@@ -221,7 +235,7 @@ async function verifyPassword(plainTextPassword, hashedPasswordFromDB) {
 
 // middleware to test if authenticated
 function checkIsAuthenticated (req, res, next) {
-  if (req.session.username) {
+  if (req.session) { // needed to remove .username from this if to unblock the frontend
     next();
   } else {
     res.status(401).send("User Not Logged In");
