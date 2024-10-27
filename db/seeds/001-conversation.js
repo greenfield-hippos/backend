@@ -7,15 +7,12 @@ exports.seed = async function(knex) {
   await knex('conversation').del()
   await knex('conversation').insert([
     {
-      id: 1,
       title: "JavaScript?"
     },
     {
-      id: 2,
       title: "knex text or string"
     },
     {
-      id: 3,
       title: "useEffect array"
     },
   ]);
