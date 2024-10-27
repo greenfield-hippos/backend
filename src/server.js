@@ -169,6 +169,16 @@ app.post('/login',checkNotYetAuthenticated, async (req, res) => {
   }
 });
 
+app.post('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).send("Could Not Log Out");
+    }
+    res.clearCookie('connect.sid');
+    res.send("Log Out Successful");
+  });
+});
+
 app.get('/users/:uid/messages', checkIsAuthenticated, async (req,res) => {
   const userID = parseInt(req.params.uid);
 
