@@ -58,6 +58,8 @@ Now you should have what you need to get started!
 
 - POST `/login`: Used to log in with an existing user account. Expects `username` and `password` in the JSON request body. Responds with the user object that was created and a boolean, `authenticationSuccessful`, that indicates the result of the attempted login
 
+- POST `/logout`: Used to log out of a user account. Does not expect anything in the request body
+
 - POST `/api/chat`: Used to interface with ChatGPT. Expects `user_id` and `message` in the JSON request body. Including an optional `conversation_id` will allow the message to be associated with an existing conversation instead of creating a new one. Responds with the `response` from ChatGPT and the `conversation_id` associated with the current conversation
 
 - GET `/users/:uid/messages`: Used to retrieve all messages associated with a given user ID. Responds with an array of `message` objects
