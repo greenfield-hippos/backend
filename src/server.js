@@ -225,7 +225,7 @@ async function verifyPassword(plainTextPassword, hashedPasswordFromDB) {
 
 // middleware to test if authenticated
 function checkIsAuthenticated (req, res, next) {
-  if (req.session.username) {
+  if (req.session) { // needed to remove .username from this if to unblock the frontend
     next();
   } else {
     res.status(401).send("User Not Logged In");
