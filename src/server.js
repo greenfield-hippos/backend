@@ -1,42 +1,48 @@
-const knex = require('./knex');
-const express = require('express');
+const knex = require("./knex");
+const express = require("express");
 const app = express();
-const cors = require('cors');
-const bcrypt = require('bcrypt');
-const openaiRequest = require('./openairequest');
-const generateConversationTitle = require('./titleGenerator');
-const session = require('express-session');
-const MemoryStore = require('memorystore')(session);
-const crypto = require('crypto');
-const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(64).toString('hex');
-const frontendURL = process.env.FRONT_END_URL || "http://localhost:5173"
+const cors = require("cors");
+const bcrypt = require("bcrypt");
+const openaiRequest = require("./openairequest");
+const generateConversationTitle = require("./titleGenerator");
+const session = require("express-session");
+const MemoryStore = require("memorystore")(session);
+const crypto = require("crypto");
+const { error } = require("console");
+const sessionSecret =
+  process.env.SESSION_SECRET || crypto.randomBytes(64).toString("hex");
+const frontendURL = process.env.FRONT_END_URL || "http://localhost:5173";
 
 const PORT = process.env.PORT || 8080;
 
 app.use(express.json());
-app.use(cors({
-  origin: frontendURL,
-  credentials: true // Allow credentials (cookies) to be sent
-}));
-app.options('*', cors());
+app.use(
+  cors({
+    origin: frontendURL,
+    credentials: true, // Allow credentials (cookies) to be sent
+  })
+);
+app.options("*", cors());
 
-app.use(session({
-  secret: sessionSecret, 
-  resave: false,
-  saveUninitialized: false,
-  store: new MemoryStore({
-    checkPeriod: 86400000
-  }),
-  cookie: { path: '/', httpOnly: true, secure: false, maxAge: null } // Currently using all of the default values explicitly
-}));
+app.use(
+  session({
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    store: new MemoryStore({
+      checkPeriod: 86400000,
+    }),
+    cookie: { path: "/", httpOnly: true, secure: false, maxAge: null }, // Currently using all of the default values explicitly
+  })
+);
 
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
+app.get("/", (req, res) => {
+  res.send("Hello World!");
 });
 
-app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
+app.post("/api/chat", checkIsAuthenticated, async (req, res) => {
   const { message, user_id, conversation_id } = req.body;
 
   if (!message) {
@@ -55,10 +61,13 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
     //if no conversation ID present, add a new conversation and use its ID - otherwise use the ID given
     if (!conversation_id) {
       continuedConversation = false;
-      const openaiTitle= await generateConversationTitle(message, openaiResponse);
+      const openaiTitle = await generateConversationTitle(
+        message,
+        openaiResponse
+      );
       const newConversation = {
         title: openaiTitle,
-        updated_at: new Date()
+        updated_at: new Date(),
       };
 
       const newlyCreated = await addConversation(newConversation);
@@ -71,13 +80,14 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
     const chatUser = await getChatUserByID(user_id);
     const chatUsername = chatUser.username;
 
-    if (associatedConversationID && chatUsername) { //to make sure we have both before proceeding
+    if (associatedConversationID && chatUsername) {
+      //to make sure we have both before proceeding
       //Preparing the message record for the question the user asked
       const userQuestion = {
         chat_user_id: user_id,
         conversation_id: associatedConversationID,
         author: chatUsername,
-        content: message
+        content: message,
       };
 
       //Preparing the message record for the answer received from ChatGPT
@@ -85,7 +95,7 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
         chat_user_id: user_id,
         conversation_id: associatedConversationID,
         author: "ChatGPT",
-        content: openaiResponse
+        content: openaiResponse,
       };
 
       const addedQuestionArray = await addMessage(userQuestion);
@@ -94,23 +104,30 @@ app.post('/api/chat', checkIsAuthenticated, async (req, res) => {
       const addedAnswer = addedAnswerArray[0];
 
       if (continuedConversation) {
-        await updateConvoLastUpdated(associatedConversationID , new Date());
+        await updateConvoLastUpdated(associatedConversationID, new Date());
       }
 
-      if (addedQuestion && addedAnswer) { //to make sure we have made all necessary changes before proceeding
+      if (addedQuestion && addedAnswer) {
+        //to make sure we have made all necessary changes before proceeding
         res.json({
           response: openaiResponse,
-          conversation_id: associatedConversationID
+          conversation_id: associatedConversationID,
         }); //should any of the newly created rows be returned to the front end?
       } else {
-        res.status(500).json({ error: "Failed to add the conversation content to the database."});
+        res.status(500).json({
+          error: "Failed to add the conversation content to the database.",
+        });
       }
     } else {
-      res.status(500).json({ error: "Failed to retrieve the information required from the database."});
+      res.status(500).json({
+        error: "Failed to retrieve the information required from the database.",
+      });
     }
   } catch (error) {
     console.error("Error in the the /api/chat route: ", error.message);
-    res.status(500).json({ error: "Failed to generate a response from OpenAI."});
+    res
+      .status(500)
+      .json({ error: "Failed to generate a response from OpenAI." });
   }
 });
 
@@ -118,8 +135,8 @@ const CHAT_USER_TABLE = "chat_user";
 const MESSAGE_TABLE = "message";
 const CONVERSATION_TABLE = "conversation";
 
-app.post('/signup',checkNotYetAuthenticated, async (req, res) => {
-  const {username, password} = req.body;
+app.post("/signup", checkNotYetAuthenticated, async (req, res) => {
+  const { username, password } = req.body;
   const userFound = await getChatUserByUsername(username);
 
   if (!userFound) {
@@ -128,9 +145,9 @@ app.post('/signup',checkNotYetAuthenticated, async (req, res) => {
     let newChatUser = {
       username: username,
       salted_hash: saltedHash,
-      is_admin: false
+      is_admin: false,
     };
-  
+
     const userCreated = await addUser(newChatUser);
     delete userCreated[0].salted_hash;
 
@@ -140,8 +157,8 @@ app.post('/signup',checkNotYetAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/login',checkNotYetAuthenticated, async (req, res) => {
-  const {username, password} = req.body;
+app.post("/login", checkNotYetAuthenticated, async (req, res) => {
+  const { username, password } = req.body;
   const user = await getChatUserByUsername(username);
 
   if (user) {
@@ -156,33 +173,33 @@ app.post('/login',checkNotYetAuthenticated, async (req, res) => {
       if (lastLoginUpdateResult[0]) {
         res.status(200).json({
           authenticationSuccessful: authenicationResult,
-          chatUser: lastLoginUpdateResult[0]
+          chatUser: lastLoginUpdateResult[0],
         });
       } else {
         res.status(500).send("Could Not Log In");
       }
     } else {
-      res.status(401).json({authenticationSuccessful: authenicationResult});
+      res.status(401).json({ authenticationSuccessful: authenicationResult });
     }
   } else {
     res.status(404).send("User Not Found");
   }
 });
 
-app.post('/logout', (req, res) => {
-  req.session.destroy(err => {
+app.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
     if (err) {
       return res.status(500).send("Could Not Log Out");
     }
-    res.clearCookie('connect.sid');
+    res.clearCookie("connect.sid");
     res.status(200).send("Log Out Successful");
   });
 });
 
-app.get('/users/:uid/messages', checkIsAuthenticated, async (req,res) => {
+app.get("/users/:uid/messages", checkIsAuthenticated, async (req, res) => {
   const userID = parseInt(req.params.uid);
 
-  try {  
+  try {
     const allMessagesForUser = await getAllMessagesForUser(userID);
     res.status(200).json(allMessagesForUser);
   } catch (err) {
@@ -190,25 +207,52 @@ app.get('/users/:uid/messages', checkIsAuthenticated, async (req,res) => {
   }
 });
 
-app.get('/users/:uid/conversations/:cid/messages', checkIsAuthenticated, async (req,res) => {
-  const conversationID = parseInt(req.params.cid);
+app.get(
+  "/users/:uid/conversations/:cid/messages",
+  checkIsAuthenticated,
+  async (req, res) => {
+    const conversationID = parseInt(req.params.cid);
 
-  try {  
-    const allMessagesFromConversation = await getAllMessagesFromConversation(conversationID);
-    res.status(200).json(allMessagesFromConversation);
-  } catch (err) {
-    res.status(500).send(err);
+    try {
+      const allMessagesFromConversation = await getAllMessagesFromConversation(
+        conversationID
+      );
+      res.status(200).json(allMessagesFromConversation);
+    } catch (err) {
+      res.status(500).send(err);
+    }
   }
-});
+);
 
-app.get('/users/:uid/conversations', checkIsAuthenticated, async (req,res) => {
+app.get("/users/:uid/conversations", checkIsAuthenticated, async (req, res) => {
   const userID = parseInt(req.params.uid);
 
-  try {  
+  try {
     const allConversationsForUser = await getAllConversationsForUser(userID);
     res.status(200).json(allConversationsForUser);
   } catch (err) {
     res.status(500).send(err);
+  }
+});
+//Add endpoint for favorite
+app.patch("/messages/:id", checkIsAuthenticated, async (req, res) => {
+  const messageID = parseInt(req.params.id);
+  const { is_favorite } = req.body;
+
+  try {
+    // Update the `is_favorite` field to true for the selected message
+    const updatedMessage = await knex("message")
+      .where({ id: messageID })
+      .update({ is_favorite });
+
+    if (updatedMessage) {
+      res.status(200).json(updatedMessage[0]);
+    } else {
+      res.status(404).json({ error: "Not message found" });
+    }
+  } catch (error) {
+    console.error("Error updating:", error.message);
+    res.status(500).json({ error: "Failed" });
   }
 });
 
@@ -216,26 +260,27 @@ app.get('/users/:uid/conversations', checkIsAuthenticated, async (req,res) => {
 async function hashPassword(plainTextPassword) {
   const saltRounds = 10; //the higher the more secure but more time-consuming
   try {
-      const hash = await bcrypt.hash(plainTextPassword, saltRounds); //applies salt and hashes the password
-      return hash;
+    const hash = await bcrypt.hash(plainTextPassword, saltRounds); //applies salt and hashes the password
+    return hash;
   } catch (err) {
-      console.error('Hashing error:', err);
+    console.error("Hashing error:", err);
   }
 }
 
 //for existing user login
 async function verifyPassword(plainTextPassword, hashedPasswordFromDB) {
   try {
-      const match = await bcrypt.compare(plainTextPassword, hashedPasswordFromDB); //the salt can be implicitly extracted from the hashed password
-      return match;
+    const match = await bcrypt.compare(plainTextPassword, hashedPasswordFromDB); //the salt can be implicitly extracted from the hashed password
+    return match;
   } catch (err) {
-      console.error('Verification error:', err);
+    console.error("Verification error:", err);
   }
 }
 
 // middleware to test if authenticated
-function checkIsAuthenticated (req, res, next) {
-  if (req.session) { // needed to remove .username from this if to unblock the frontend
+function checkIsAuthenticated(req, res, next) {
+  if (req.session) {
+    // needed to remove .username from this if to unblock the frontend
     next();
   } else {
     res.status(401).send("User Not Logged In");
@@ -243,8 +288,8 @@ function checkIsAuthenticated (req, res, next) {
 }
 
 // middleware to test if NOT authenticated
-function checkNotYetAuthenticated (req, res, next) {
-  if (! req.session.username) {
+function checkNotYetAuthenticated(req, res, next) {
+  if (!req.session.username) {
     next();
   } else {
     res.status(400).send("User Already Logged In");
@@ -255,84 +300,76 @@ function updateLastLogin(id, lastLogin) {
   return knex(CHAT_USER_TABLE)
     .returning("*")
     .where({ id: id })
-    .update({last_login: lastLogin})
+    .update({ last_login: lastLogin });
 }
 
 function getChatUserByUsername(username) {
   return knex
-  .select("*")
-  .from(CHAT_USER_TABLE)
-  .where({username: username})
-  .first();
+    .select("*")
+    .from(CHAT_USER_TABLE)
+    .where({ username: username })
+    .first();
 }
 
 function getChatUserByID(id) {
-  return knex
-  .select("*")
-  .from(CHAT_USER_TABLE)
-  .where({id: id})
-  .first();
+  return knex.select("*").from(CHAT_USER_TABLE).where({ id: id }).first();
 }
 
 //returns an array of objects, even if just one row being added
 function addUser(newUserObject) {
-  return knex
-  .returning("*")
-  .insert(newUserObject)
-  .into(CHAT_USER_TABLE);
+  return knex.returning("*").insert(newUserObject).into(CHAT_USER_TABLE);
 }
 
 //returns an array of objects, even if just one row being added
 function addConversation(newConversationObject) {
   return knex
-  .returning("*")
-  .insert(newConversationObject)
-  .into(CONVERSATION_TABLE);
+    .returning("*")
+    .insert(newConversationObject)
+    .into(CONVERSATION_TABLE);
 }
 
 function updateConvoLastUpdated(id, lastUpdated) {
   return knex(CONVERSATION_TABLE)
-  .returning("*")
-  .where({ id: id })
-  .update({updated_at: lastUpdated})
+    .returning("*")
+    .where({ id: id })
+    .update({ updated_at: lastUpdated });
 }
 
 async function getAllConversationsForUser(userID) {
   const allMessagesForUser = await getAllMessagesForUser(userID);
-  const allConversationIDs = allMessagesForUser.map((message) => message.conversation_id);
-  const uniqueConversationIDs = [... new Set(allConversationIDs)];
+  const allConversationIDs = allMessagesForUser.map(
+    (message) => message.conversation_id
+  );
+  const uniqueConversationIDs = [...new Set(allConversationIDs)];
 
   return knex
-  .select()
-  .from(CONVERSATION_TABLE)
-  .whereIn('id', uniqueConversationIDs)
-  .orderBy('updated_at', 'desc')
+    .select()
+    .from(CONVERSATION_TABLE)
+    .whereIn("id", uniqueConversationIDs)
+    .orderBy("updated_at", "desc");
 }
 
 function getAllMessagesForUser(userID) {
   return knex
-  .select()
-  .from(MESSAGE_TABLE)
-  .where({chat_user_id: userID})
-  .orderBy('timestamp', 'asc')
+    .select()
+    .from(MESSAGE_TABLE)
+    .where({ chat_user_id: userID })
+    .orderBy("timestamp", "asc");
 }
 
 function getAllMessagesFromConversation(conversationID) {
   return knex
-  .select()
-  .from(MESSAGE_TABLE)
-  .where({conversation_id: conversationID})
-  .orderBy('timestamp', 'asc')
+    .select()
+    .from(MESSAGE_TABLE)
+    .where({ conversation_id: conversationID })
+    .orderBy("timestamp", "asc");
 }
 
 //returns an array of objects, even if just one row being added
 function addMessage(newMessageObject) {
-  return knex
-  .returning("*")
-  .insert(newMessageObject)
-  .into(MESSAGE_TABLE);
+  return knex.returning("*").insert(newMessageObject).into(MESSAGE_TABLE);
 }
 
-app.listen(PORT, () =>{
+app.listen(PORT, () => {
   console.log(`Express server is up and running on ${PORT}`);
 });
