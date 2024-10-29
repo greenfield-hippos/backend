@@ -242,9 +242,10 @@ app.get("/users/:uid/favorites", checkIsAuthenticated, async (req, res) => {
     const allFavoritesAnswerIDs = allFavoritesAnswerData.map(
       (message) => message.id
     );
-
     const allFavoritesQuestionIDs = allFavoritesAnswerIDs.map((id) => id - 1);
+
     const allFavoritesQuestionData = await getAllFavoritesQuestionData(
+      userID,
       allFavoritesQuestionIDs
     );
 
@@ -391,14 +392,14 @@ function getAllFavoritesAnswerData(userID) {
   return knex
     .select()
     .from(MESSAGE_TABLE)
-    .where({ chat_user_id: userID, author: "chatgpt", is_favorite: true });
+    .where({ chat_user_id: userID, author: "ChatGPT", is_favorite: true });
 }
 
-function getAllFavoritesQuestionData(allFavoritesQuestionIDs) {
+function getAllFavoritesQuestionData(userID, allFavoritesQuestionIDs) {
   return knex
     .select()
     .from(MESSAGE_TABLE)
-    .where({ author: "user" })
+    .where({ chat_user_id: userID })
     .whereIn("id", allFavoritesQuestionIDs);
 }
 
