@@ -234,6 +234,28 @@ app.get("/users/:uid/conversations", checkIsAuthenticated, async (req, res) => {
     res.status(500).send(err);
   }
 });
+
+app.get("/users/:uid/favorites", checkIsAuthenticated, async (req, res) => {
+  const userID = parseInt(req.params.uid);
+  try {
+    const allFavoritesAnswerData = await getAllFavoritesAnswerData(userID);
+    const allFavoritesAnswerIDs = allFavoritesAnswerData.map(
+      (message) => message.id
+    );
+
+    const allFavoritesQuestionIDs = allFavoritesAnswerIDs.map((id) => id - 1);
+    const allFavoritesQuestionData = await getAllFavoritesQuestionData(
+      allFavoritesQuestionIDs
+    );
+
+    res.status(200).json({
+      question: allFavoritesQuestionData,
+      answer: allFavoritesAnswerData,
+    });
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
 //Add endpoint for favorite
 app.patch("/messages/:id", checkIsAuthenticated, async (req, res) => {
   const messageID = parseInt(req.params.id);
@@ -363,6 +385,21 @@ function getAllMessagesFromConversation(conversationID) {
     .from(MESSAGE_TABLE)
     .where({ conversation_id: conversationID })
     .orderBy("timestamp", "asc");
+}
+
+function getAllFavoritesAnswerData(userID) {
+  return knex
+    .select()
+    .from(MESSAGE_TABLE)
+    .where({ chat_user_id: userID, author: "chatgpt", is_favorite: true });
+}
+
+function getAllFavoritesQuestionData(allFavoritesQuestionIDs) {
+  return knex
+    .select()
+    .from(MESSAGE_TABLE)
+    .where({ author: "user" })
+    .whereIn("id", allFavoritesQuestionIDs);
 }
 
 //returns an array of objects, even if just one row being added
