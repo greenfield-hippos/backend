@@ -8,9 +8,10 @@ const generateConversationTitle = require("./titleGenerator");
 const session = require("express-session");
 const MemoryStore = require("memorystore")(session);
 const crypto = require("crypto");
+const { error } = require("console");
 const sessionSecret =
   process.env.SESSION_SECRET || crypto.randomBytes(64).toString("hex");
-const frontendURL = process.env.FRONT_END_URL;
+const frontendURL = process.env.FRONT_END_URL || "http://localhost:5173";
 
 const PORT = process.env.PORT || 8080;
 
@@ -253,6 +254,27 @@ app.get("/users/:uid/favorites", checkIsAuthenticated, async (req, res) => {
     });
   } catch (err) {
     res.status(500).send(err);
+  }
+});
+//Add endpoint for favorite
+app.patch("/messages/:id", checkIsAuthenticated, async (req, res) => {
+  const messageID = parseInt(req.params.id);
+  const { is_favorite } = req.body;
+
+  try {
+    // Update the `is_favorite` field to true for the selected message
+    const updatedMessage = await knex("message")
+      .where({ id: messageID })
+      .update({ is_favorite });
+
+    if (updatedMessage) {
+      res.status(200).json(updatedMessage[0]);
+    } else {
+      res.status(404).json({ error: "Not message found" });
+    }
+  } catch (error) {
+    console.error("Error updating:", error.message);
+    res.status(500).json({ error: "Failed" });
   }
 });
 
