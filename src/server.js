@@ -8,14 +8,23 @@ const generateConversationTitle = require("./titleGenerator");
 const session = require("express-session");
 const MemoryStore = require("memorystore")(session);
 const crypto = require("crypto");
-const { error } = require("console");
+const { OpenAI } = require("openai");
+const WebSocket = require("ws");
+
 const sessionSecret =
   process.env.SESSION_SECRET || crypto.randomBytes(64).toString("hex");
 const frontendURL = process.env.FRONT_END_URL || "http://localhost:5173";
 
 const PORT = process.env.PORT || 8080;
 
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const wss = new WebSocket.Server({ noServer: true });
+// Store client WebSocket connection
+
+let clients = [];
+
 app.use(express.json());
+
 app.use(
   cors({
     origin: frontendURL,
@@ -37,6 +46,65 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: true }));
+
+const server = app.listen(PORT, () => {
+  console.log(`Express server is up and running on ${PORT}`);
+});
+
+// Handle WebSocket connection
+wss.on("connection", async (ws, request) => {
+  const text = request.headers["x-text"];
+
+  if (!text) {
+    ws.close();
+    return;
+  }
+
+  try {
+    const response = await client.audio.speech.create({
+      model: "tts-1",
+      voice: "alloy",
+      input: text,
+    });
+
+    // response.on("data", (chunk) => {
+    //   console.log(chunk);
+    //   ws.send(chunk);
+    // });
+    // response.on("end", () => {
+    //   ws.close();
+    // });
+
+    const audioData = response.data;
+
+    ws.send(audioData);
+    ws.close();
+  } catch (error) {
+    console.error("Error in streaming audio:", error);
+    ws.close();
+  }
+});
+
+// Upgrade HTTP to WebSocket
+server.on("upgrade", (request, socket, head) => {
+  const text = decodeURIComponent(request.url.split("?text=")[1]);
+  request.headers["x-text"] = text;
+
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit("connection", ws, request);
+  });
+});
+
+// Rest endoint to start WebSocket connection with text
+app.post("/messages/start-audio", (req, res) => {
+  const { text } = req.body;
+  console.log(text);
+  if (!text) {
+    return res.status(400).send("Message is required");
+  }
+
+  res.send({ message: "Streaming started" });
+});
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -231,12 +299,8 @@ app.delete(
     const conversationID = parseInt(req.params.cid);
 
     try {
-      await knex("message")
-      .where({ conversation_id: conversationID })
-      .del();
-      await knex("conversation")
-      .where({ id: conversationID })
-      .del();
+      await knex("message").where({ conversation_id: conversationID }).del();
+      await knex("conversation").where({ id: conversationID }).del();
       res.status(200).send("Conversation has been deleted.");
     } catch (err) {
       res.status(500).send(err);
@@ -427,7 +491,3 @@ function getAllFavoritesQuestionData(userID, allFavoritesQuestionIDs) {
 function addMessage(newMessageObject) {
   return knex.returning("*").insert(newMessageObject).into(MESSAGE_TABLE);
 }
-
-app.listen(PORT, () => {
-  console.log(`Express server is up and running on ${PORT}`);
-});
