@@ -224,6 +224,26 @@ app.get(
   }
 );
 
+app.delete(
+  "/users/:uid/conversations/:cid/",
+  checkIsAuthenticated,
+  async (req, res) => {
+    const conversationID = parseInt(req.params.cid);
+
+    try {
+      await knex("message")
+      .where({ conversation_id: conversationID })
+      .del();
+      await knex("conversation")
+      .where({ id: conversationID })
+      .del();
+      res.status(200).send("Conversation has been deleted.");
+    } catch (err) {
+      res.status(500).send(err);
+    }
+  }
+);
+
 app.get("/users/:uid/conversations", checkIsAuthenticated, async (req, res) => {
   const userID = parseInt(req.params.uid);
 
